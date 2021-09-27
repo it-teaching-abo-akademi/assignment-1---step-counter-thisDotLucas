@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import csv
 
 
 # Simple function to visualize 4 arrays that are given to it
