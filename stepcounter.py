@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+INTERVAL = 34
+DYNAMIC_THRESHOLDS = []
+COUNT = 0
 
 # Simple function to visualize 4 arrays that are given to it
 def visualize_data(timestamps, x_arr, y_arr, z_arr, s_arr):
@@ -18,7 +21,18 @@ def visualize_data(timestamps, x_arr, y_arr, z_arr, s_arr):
     # plotting magnitude and steps
     marks = [n > 0 for n in s_arr]
     plt.plot(timestamps, m_arr, '-gD', markevery=marks, linewidth=1.0)
-    plt.axhline(y=get_threshold(m_arr), color='black', linestyle='-')
+
+    if len(DYNAMIC_THRESHOLDS) == 1:
+        plt.axhline(y=get_threshold(m_arr), color='black', linestyle='-')
+    else:
+        for i, threshold in enumerate(DYNAMIC_THRESHOLDS):
+            if (i * INTERVAL) + INTERVAL >= len(timestamps):
+                plt.plot([i * INTERVAL, len(timestamps) - 1], [threshold, threshold], color='black')
+            else:
+                plt.plot([i * INTERVAL, (i * INTERVAL) + INTERVAL], [threshold, threshold], color='black')
+
+    print("Rec count: " + str(COUNT))
+    DYNAMIC_THRESHOLDS.clear()
     plt.show()
 
 
@@ -45,6 +59,7 @@ def count_steps(timestamps, x_arr, y_arr, z_arr):
     rv = []
     magnitudes = [magnitude(x_arr[i], y_arr[i], z_arr[i]) for i in range(len(timestamps))]
     threshold = get_threshold(magnitudes)
+    DYNAMIC_THRESHOLDS.append(threshold) # For visualization
     for i, time in enumerate(timestamps):
         if i > 0 and magnitudes[i] >= threshold > magnitudes[i - 1]:
             rv.append(time)
@@ -52,8 +67,19 @@ def count_steps(timestamps, x_arr, y_arr, z_arr):
     return rv
 
 
-def dynamic_count_steps(timestamps, x_arr, y_arr, z_arr):
-    count_steps(timestamps, x_arr, y_arr, z_arr)
+def rec_count_steps(timestamps, x_arr, y_arr, z_arr, interval, n):
+    if n >= len(timestamps) - 1:
+        return []
+    COUNT = COUNT + 1
+    if n + interval >= len(timestamps):
+        interval = len(timestamps) - 1
+
+    return count_steps(timestamps[n:n+interval], x_arr[n:n+interval], y_arr[n:n+interval], z_arr[n:n+interval]) +\
+        rec_count_steps(timestamps, x_arr, y_arr, z_arr, interval, n + interval)
+
+
+def dynamic_count_steps(timestamps, x_arr, y_arr, z_arr, interval):
+    return rec_count_steps(timestamps, x_arr, y_arr, z_arr, interval, 0)
 
 
 def get_threshold(magnitudes):
@@ -94,12 +120,13 @@ def check_data(t, x, y, z):
 
 def main():
     # read data from a measurement file, change the inoput file name if needed
-    timestamps, x_array, y_array, z_array = read_data("data/walking.csv")
+    timestamps, x_array, y_array, z_array = read_data("data/fastwalking.csv")
     # Chek that the data does not produce errors
     if not check_data(timestamps, x_array, y_array, z_array):
         return
     # Count the steps based on array of measurements from accelerometer
-    st = count_steps(timestamps, x_array, y_array, z_array)
+    #st = count_steps(timestamps, x_array, y_array, z_array)
+    st = dynamic_count_steps(timestamps, x_array, y_array, z_array, INTERVAL)
     # Print the result
     print("This data contains " + str(len(st)) + " steps according to current algorithm")
     # convert array of step times into graph-compatible format
