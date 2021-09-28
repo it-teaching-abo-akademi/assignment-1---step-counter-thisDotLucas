@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-INTERVAL = 34
+INTERVAL = 5
 DYNAMIC_THRESHOLDS = []
-COUNT = 0
+
 
 # Simple function to visualize 4 arrays that are given to it
 def visualize_data(timestamps, x_arr, y_arr, z_arr, s_arr):
@@ -31,7 +31,6 @@ def visualize_data(timestamps, x_arr, y_arr, z_arr, s_arr):
             else:
                 plt.plot([i * INTERVAL, (i * INTERVAL) + INTERVAL], [threshold, threshold], color='black')
 
-    print("Rec count: " + str(COUNT))
     DYNAMIC_THRESHOLDS.clear()
     plt.show()
 
@@ -70,7 +69,7 @@ def count_steps(timestamps, x_arr, y_arr, z_arr):
 def rec_count_steps(timestamps, x_arr, y_arr, z_arr, interval, n):
     if n >= len(timestamps) - 1:
         return []
-    COUNT = COUNT + 1
+
     if n + interval >= len(timestamps):
         interval = len(timestamps) - 1
 
@@ -120,13 +119,13 @@ def check_data(t, x, y, z):
 
 def main():
     # read data from a measurement file, change the inoput file name if needed
-    timestamps, x_array, y_array, z_array = read_data("data/fastwalking.csv")
+    timestamps, x_array, y_array, z_array = read_data("data/fast_walk_9_steps.csv")
     # Chek that the data does not produce errors
     if not check_data(timestamps, x_array, y_array, z_array):
         return
     # Count the steps based on array of measurements from accelerometer
-    #st = count_steps(timestamps, x_array, y_array, z_array)
-    st = dynamic_count_steps(timestamps, x_array, y_array, z_array, INTERVAL)
+    st = count_steps(timestamps, x_array, y_array, z_array)
+    #st = dynamic_count_steps(timestamps, x_array, y_array, z_array, INTERVAL)
     # Print the result
     print("This data contains " + str(len(st)) + " steps according to current algorithm")
     # convert array of step times into graph-compatible format
