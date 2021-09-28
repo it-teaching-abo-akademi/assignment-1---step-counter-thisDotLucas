@@ -16,8 +16,9 @@ def visualize_data(timestamps, x_arr, y_arr, z_arr, s_arr):
         m_arr.append(magnitude(x_arr[i], y_arr[i], z_arr[i]))
     plt.figure(2)
     # plotting magnitude and steps
-    plt.plot(timestamps, s_arr, color="black", linewidth=1.0)
-    plt.plot(timestamps, m_arr, color="red", linewidth=1.0)
+    marks = [n > 0 for n in s_arr]
+    plt.plot(timestamps, m_arr, '-gD', markevery=marks, linewidth=1.0)
+    plt.axhline(y=get_threshold(m_arr), color='black', linestyle='-')
     plt.show()
 
 
@@ -39,14 +40,24 @@ def read_data(filename):
 
 # Function to count steps.
 # Should return an array of timestamps from when steps were detected
-# Each value in this arrray should represent the time that step was made.
+# Each value in this array should represent the time that step was made.
 def count_steps(timestamps, x_arr, y_arr, z_arr):
-    # TODO: Actual implementation
     rv = []
+    magnitudes = [magnitude(x_arr[i], y_arr[i], z_arr[i]) for i in range(len(timestamps))]
+    threshold = get_threshold(magnitudes)
     for i, time in enumerate(timestamps):
-        if i == 0:
+        if i > 0 and magnitudes[i] >= threshold > magnitudes[i - 1]:
             rv.append(time)
+
     return rv
+
+
+def dynamic_count_steps(timestamps, x_arr, y_arr, z_arr):
+    count_steps(timestamps, x_arr, y_arr, z_arr)
+
+
+def get_threshold(magnitudes):
+    return (min(magnitudes) + max(magnitudes)) / 2
 
 
 # Calculate the magnitude of the given vector
