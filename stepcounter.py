@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-INTERVAL = 5
+
+TIME_WINDOW = 15
+LAST_TIME_STAMP = 0.0
+INTERVAL = 15
 DYNAMIC_THRESHOLDS = []
 
 
@@ -34,9 +37,17 @@ def visualize_data(timestamps, x_arr, y_arr, z_arr, s_arr):
     DYNAMIC_THRESHOLDS.clear()
     plt.show()
 
+    plt.figure(3)
+    x = list(range(3, len(timestamps), 3))
+    y_pos = np.arange(3, len(timestamps), 3)
+    y = [len(steps) for steps in [dynamic_count_steps(timestamps, x_arr, y_arr, z_arr, interval) for interval in x]]
+    print(y)
+    plt.bar(y_pos, y, align='center', alpha=0.5)
+    plt.xticks(y_pos, x, rotation='vertical')
+    plt.show()
+
 
 # Function to read the data from the log file
-# TODO Read the measurements into array variables and return them
 def read_data(filename):
     timestamps = list()
     x_arr = list()
@@ -55,15 +66,22 @@ def read_data(filename):
 # Should return an array of timestamps from when steps were detected
 # Each value in this array should represent the time that step was made.
 def count_steps(timestamps, x_arr, y_arr, z_arr):
+    global LAST_TIME_STAMP
     rv = []
     magnitudes = [magnitude(x_arr[i], y_arr[i], z_arr[i]) for i in range(len(timestamps))]
     threshold = get_threshold(magnitudes)
-    DYNAMIC_THRESHOLDS.append(threshold) # For visualization
+    DYNAMIC_THRESHOLDS.append(threshold)  # For visualization
     for i, time in enumerate(timestamps):
-        if i > 0 and magnitudes[i] >= threshold > magnitudes[i - 1]:
+        if i > 0 and magnitudes[i] >= threshold > magnitudes[i - 1] or i == 0 and magnitudes[i] >= threshold and \
+                time - LAST_TIME_STAMP > TIME_WINDOW:
+            LAST_TIME_STAMP = time
             rv.append(time)
 
     return rv
+
+
+def dynamic_count_steps(timestamps, x_arr, y_arr, z_arr, interval):
+    return rec_count_steps(timestamps, x_arr, y_arr, z_arr, interval, 0)
 
 
 def rec_count_steps(timestamps, x_arr, y_arr, z_arr, interval, n):
@@ -75,10 +93,6 @@ def rec_count_steps(timestamps, x_arr, y_arr, z_arr, interval, n):
 
     return count_steps(timestamps[n:n+interval], x_arr[n:n+interval], y_arr[n:n+interval], z_arr[n:n+interval]) +\
         rec_count_steps(timestamps, x_arr, y_arr, z_arr, interval, n + interval)
-
-
-def dynamic_count_steps(timestamps, x_arr, y_arr, z_arr, interval):
-    return rec_count_steps(timestamps, x_arr, y_arr, z_arr, interval, 0)
 
 
 def get_threshold(magnitudes):
@@ -119,13 +133,13 @@ def check_data(t, x, y, z):
 
 def main():
     # read data from a measurement file, change the inoput file name if needed
-    timestamps, x_array, y_array, z_array = read_data("data/fast_walk_9_steps.csv")
+    timestamps, x_array, y_array, z_array = read_data("data/walk_9_steps.csv")
     # Chek that the data does not produce errors
     if not check_data(timestamps, x_array, y_array, z_array):
         return
     # Count the steps based on array of measurements from accelerometer
-    st = count_steps(timestamps, x_array, y_array, z_array)
-    #st = dynamic_count_steps(timestamps, x_array, y_array, z_array, INTERVAL)
+    #st = count_steps(timestamps, x_array, y_array, z_array)
+    st = dynamic_count_steps(timestamps, x_array, y_array, z_array, INTERVAL)
     # Print the result
     print("This data contains " + str(len(st)) + " steps according to current algorithm")
     # convert array of step times into graph-compatible format
